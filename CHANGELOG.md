@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 — 2026-10-28
+
+- Rename the plugin, package, and GitHub repository to `dsh-remote-suite` after
+  checking npm, GitHub, DSH-Store, and dsh.so for collisions with
+  `dsh-remote-shell`.
+
 ## 0.1.3 — 2026-10-28
 
 - Remove the commented SSH key path from the default bundle patch after the

@@ -1,6 +1,6 @@
 # Security
 
-`dsh-remote-shell` is a high-privilege plugin. It runs commands and writes files on
+`dsh-remote-suite` is a high-privilege plugin. It runs commands and writes files on
 remote hosts with the permissions of the configured SSH user.
 
 ## What it can do
@@ -42,7 +42,7 @@ remote hosts with the permissions of the configured SSH user.
 ## Reporting a vulnerability
 
 Open a private security advisory at
-<https://github.com/Char0nChengg/dsh-remote-shell/security/advisories/new>, or email
+<https://github.com/Char0nChengg/dsh-remote-suite/security/advisories/new>, or email
 the maintainer listed in `package.json`. Do not include live credentials or
 private server data in a public issue.
 

@@ -1,9 +1,9 @@
 # Copy this entry into your DSH profile's `cordis.patch.yml`.
-# `config` replaces the whole dsh-remote-shell row config, so keep every target you
+# `config` replaces the whole dsh-remote-suite row config, so keep every target you
 # still want. The WSL target is optional; every remote tool also accepts
 # ad-hoc `ssh:<alias>` / `wsl:<distro>` targets.
-- id: dsh-remote-shell
-  name: '@char0nchengg/dsh-remote-shell'
+- id: dsh-remote-suite
+  name: '@char0nchengg/dsh-remote-suite'
   config:
     # Preloaded into the system prompt for every Agent in this profile.
     prompt: |

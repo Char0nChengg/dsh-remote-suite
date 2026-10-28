@@ -26,7 +26,7 @@ import {
   writeRemote
 } from './lib/remote.js'
 
-export const name = 'dsh-remote-shell'
+export const name = 'dsh-remote-suite'
 export const inject = ['tools']
 
 const TEXT_OUTPUT = {
@@ -117,8 +117,8 @@ function indented(text, prefix = '  ') {
   return text.split(/\r?\n/).map((line) => `${prefix}${line}`).join('\n')
 }
 
-const CONFIG_ENTRY_ID = 'dsh-remote-shell'
-const CONFIG_PACKAGE_NAME = '@char0nchengg/dsh-remote-shell'
+const CONFIG_ENTRY_ID = 'dsh-remote-suite'
+const CONFIG_PACKAGE_NAME = '@char0nchengg/dsh-remote-suite'
 const TARGET_FIELDS = [
   'id', 'label', 'transport', 'host', 'user', 'port', 'identityFile',
   'proxyJump', 'sshOptions', 'distro', 'defaultCwd', 'shell', 'environment'
@@ -150,7 +150,7 @@ function sanitizeConfig(raw) {
 
 function configEditorHandle(ctx) {
   const editor = ctx.get('configEditor')
-  if (!editor) throw new Error('this profile does not expose ctx.configEditor, so dsh-remote-shell config cannot be edited from chat')
+  if (!editor) throw new Error('this profile does not expose ctx.configEditor, so dsh-remote-suite config cannot be edited from chat')
   const entry = editor.entries().find((candidate) => (
     candidate.options?.id === CONFIG_ENTRY_ID && candidate.options?.name === CONFIG_PACKAGE_NAME
   ))
@@ -253,12 +253,12 @@ export function apply(ctx, rawConfig) {
       }
       try {
         systemPrompt.section({
-          name: 'dsh-remote-shell:targets',
+          name: 'dsh-remote-suite:targets',
           order,
           text: remotePrompt
         })
       } catch (error) {
-        ctx.logger?.warn?.(`dsh-remote-shell: could not register preloaded environment prompt: ${error instanceof Error ? error.message : String(error)}`)
+        ctx.logger?.warn?.(`dsh-remote-suite: could not register preloaded environment prompt: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
   }
@@ -569,7 +569,7 @@ export function apply(ctx, rawConfig) {
         } catch {
           // fall back to the config this activation received
         }
-        return { text: `dsh-remote-shell config:\n${JSON.stringify(sanitizeConfig(raw), null, 2)}` }
+        return { text: `dsh-remote-suite config:\n${JSON.stringify(sanitizeConfig(raw), null, 2)}` }
       }
 
       if (action === 'set_prompt') {

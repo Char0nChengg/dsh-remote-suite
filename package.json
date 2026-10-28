@@ -1,16 +1,16 @@
 {
-  "name": "@char0nchengg/dsh-remote-shell",
-  "version": "0.1.3",
+  "name": "@char0nchengg/dsh-remote-suite",
+  "version": "0.1.4",
   "description": "Remote shell, file, and transfer tools for DeepSeek Harness over local OpenSSH or WSL, with chat-editable per-server environment notes; no agent on the server and no outbound connection from the server.",
   "license": "MIT",
   "author": "Char0nChengg",
-  "homepage": "https://github.com/Char0nChengg/dsh-remote-shell#readme",
+  "homepage": "https://github.com/Char0nChengg/dsh-remote-suite#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Char0nChengg/dsh-remote-shell.git"
+    "url": "git+https://github.com/Char0nChengg/dsh-remote-suite.git"
   },
   "bugs": {
-    "url": "https://github.com/Char0nChengg/dsh-remote-shell/issues"
+    "url": "https://github.com/Char0nChengg/dsh-remote-suite/issues"
   },
   "keywords": [
     "dsh",
