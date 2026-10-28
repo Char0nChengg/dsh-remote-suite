@@ -11,6 +11,8 @@
             transport: wsl
             distro: Ubuntu
             defaultCwd: "~"
+            environment: |
+              Local WSL distro; no sshd required. Use the distro's default user.
         # SSH example:
         # - id: gpu
         #   label: GPU server

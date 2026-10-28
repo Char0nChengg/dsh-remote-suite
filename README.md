@@ -81,6 +81,8 @@ remote_exec({ "target": "ssh:gpu", "command": "nvidia-smi" })
         transport: wsl
         distro: Ubuntu
         defaultCwd: "~"
+        environment: |
+          Local WSL distro; no sshd required. Use the distro's default user.
       - id: gpu
         label: GPU 登录节点
         transport: ssh
