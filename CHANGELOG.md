@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 — 2026-10-28
+
+- Remove the commented SSH key path from the default bundle patch after the
+  bounded security scanner classified it as SSH key material.
+
 ## 0.1.2 — 2026-10-28
 
 - Rename the plugin, package, and GitHub repository to `dsh-remote-shell` after
