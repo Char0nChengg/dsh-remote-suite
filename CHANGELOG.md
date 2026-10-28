@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2 — 2026-10-28
+
+- Keep the default bundle patch to scalar values so bounded marketplace
+  validators can parse it without review.
+
 ## 0.1.1 — 2026-10-28
 
 - Add `remote_config`: inspect and edit targets, per-server `environment` notes,

@@ -11,8 +11,7 @@
             transport: wsl
             distro: Ubuntu
             defaultCwd: "~"
-            environment: |
-              Local WSL distro; no sshd required. Use the distro's default user.
+            environment: "Local WSL distro; no sshd required. Use the distro's default user."
         # SSH example:
         # - id: myserver
         #   label: Example server
