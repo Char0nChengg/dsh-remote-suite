@@ -10,6 +10,9 @@ remote hosts with the permissions of the configured SSH user.
 - Read, write, upload, and download files on those targets.
 - Register a system-prompt section containing the `prompt` and per-target
   `environment` text from the profile configuration.
+- Persist configuration edits to the active profile's `cordis.patch.yml` through
+  `ctx.configEditor` when `remote_config` is used, and apply them through the
+  Loader.
 
 ## What it does not do
 

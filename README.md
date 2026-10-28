@@ -190,9 +190,10 @@ environment:
 
 ## 安全模型
 
-这是一个**高权限**插件：`remote_exec` 等价于远端 SSH 用户的 shell 权限，`remote_write` / `remote_transfer` 可以修改或覆盖远端文件。
+这是一个**高权限**插件：`remote_exec` 等价于远端 SSH 用户的 shell 权限，`remote_write` / `remote_transfer` 可以修改或覆盖远端文件，`remote_config` 会写当前 profile 的 `cordis.patch.yml` 并热应用配置。
 
 - 只使用专用、最小权限的 SSH key；不要把密码写进配置或环境说明；
+- `remote_config` 的写入目标是当前 DSH profile 的配置；只应在信任的会话里使用，改动前先 `action: "show"` 看一下当前配置；
 - 默认 `StrictHostKeyChecking=accept-new`，首次连接记录指纹，之后指纹变化会拒绝；
 - `BatchMode=yes` 禁止密码提示，避免密码进入进程参数或日志；
 - 服务器只接受 Windows 的入站 SSH，不需要反向连接或外网访问；
