@@ -2,8 +2,8 @@
 # The WSL target is a starting point; add SSH targets under `targets` or use the
 # ad-hoc forms `ssh:<alias>` / `ssh://user@host:port` without any config change.
 - insert:
-    - id: dsh-remote
-      name: '@char0nchengg/dsh-remote'
+    - id: dsh-remote-shell
+      name: '@char0nchengg/dsh-remote-shell'
       config:
         targets:
           - id: wsl-ubuntu

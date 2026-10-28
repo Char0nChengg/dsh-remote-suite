@@ -2,6 +2,9 @@
 
 ## 0.1.2 — 2026-10-28
 
+- Rename the plugin, package, and GitHub repository to `dsh-remote-shell` after
+  DSH-Store reported that the original `dsh-remote` entry ID was already owned by
+  another plugin.
 - Keep the default bundle patch to scalar values so bounded marketplace
   validators can parse it without review.
 

@@ -107,7 +107,7 @@ test('apply registers all seven tools and the system-prompt section', () => {
     'remote_transfer',
     'remote_write'
   ])
-  assert.equal(section?.name, 'dsh-remote:targets')
+  assert.equal(section?.name, 'dsh-remote-shell:targets')
   assert.match(section.text, /module load foo/)
 })
 
@@ -119,8 +119,8 @@ test('remote_config show and edit go through configEditor', async () => {
   }
   const entry = {
     options: {
-      id: 'dsh-remote',
-      name: '@char0nchengg/dsh-remote',
+      id: 'dsh-remote-shell',
+      name: '@char0nchengg/dsh-remote-shell',
       get config() {
         return stored
       }

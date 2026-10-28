@@ -1,6 +1,7 @@
 node_modules/
 coverage/
 scratch/
+scratch-*
 .tmp*
 *.log
 .env

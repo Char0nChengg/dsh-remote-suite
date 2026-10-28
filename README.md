@@ -1,6 +1,6 @@
-# dsh-remote
+# dsh-remote-shell
 
-[![CI](https://github.com/Char0nChengg/dsh-remote/actions/workflows/ci.yml/badge.svg)](https://github.com/Char0nChengg/dsh-remote/actions/workflows/ci.yml)
+[![CI](https://github.com/Char0nChengg/dsh-remote-shell/actions/workflows/ci.yml/badge.svg)](https://github.com/Char0nChengg/dsh-remote-shell/actions/workflows/ci.yml)
 
 让 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（DSH）在 Windows 上直接操作 WSL 发行版或远端 SSH 服务器：执行命令、读取/写入文件、上传下载，并为每个服务器预置 `module`、Conda、Slurm/PBS 等环境提示。
 
@@ -19,20 +19,20 @@
 ### 从 GitHub 安装
 
 ```powershell
-git clone https://github.com/Char0nChengg/dsh-remote.git D:\dsh-remote
+git clone https://github.com/Char0nChengg/dsh-remote-shell.git D:\dsh-remote-shell
 ```
 
 然后在 DSH 里让 Agent 安装这个本地 bundle：
 
 ```text
-plugin_manager install_bundle({ target: "D:\\dsh-remote" })
+plugin_manager install_bundle({ target: "D:\\dsh-remote-shell" })
 ```
 
 安装后插件会出现在 **设置 → 插件**，名称为 **远程终端与文件 / Remote Shell & Files**。bundle 默认带一个 WSL 目标 `wsl-ubuntu`，没有 WSL 时可以删掉，直接使用 SSH 目标或临时目标。
 
 ### npm
 
-包名预留为 `@char0nchengg/dsh-remote`。发布到 npm 后可以用 DSH 的插件安装器直接安装；目前推荐 GitHub 安装。
+包名预留为 `@char0nchengg/dsh-remote-shell`。发布到 npm 后可以用 DSH 的插件安装器直接安装；目前推荐 GitHub 安装。
 
 ## 快速使用
 
@@ -94,11 +94,11 @@ remote_exec({ "target": "ssh:myserver", "command": "hostname; pwd" })
 
 ### 手动编辑 YAML
 
-在 profile 的 `cordis.patch.yml` 追加/覆盖 `dsh-remote` 这一行。`config` 会整体替换，所以需要把想保留的 WSL 目标一起写上。完整示例见 [`targets.example.yml`](targets.example.yml)。
+在 profile 的 `cordis.patch.yml` 追加/覆盖 `dsh-remote-shell` 这一行。`config` 会整体替换，所以需要把想保留的 WSL 目标一起写上。完整示例见 [`targets.example.yml`](targets.example.yml)。
 
 ```yaml
-- id: dsh-remote
-  name: '@char0nchengg/dsh-remote'
+- id: dsh-remote-shell
+  name: '@char0nchengg/dsh-remote-shell'
   config:
     # 可选：所有目标共享的使用习惯
     prompt: |
@@ -135,7 +135,7 @@ environment:
 
 ### 预加载提示词是怎么工作的
 
-当配置里存在 `prompt` 或任一 `targets[].environment` 时，插件会在 **system prompt** 中注册一段 `dsh-remote:targets` 上下文。模型在每次请求开始前就能看到这些环境说明，不必先调用 `remote_targets`。
+当配置里存在 `prompt` 或任一 `targets[].environment` 时，插件会在 **system prompt** 中注册一段 `dsh-remote-shell:targets` 上下文。模型在每次请求开始前就能看到这些环境说明，不必先调用 `remote_targets`。
 
 - 只注入配置里的文字，**不会自动执行** `module load`、`conda activate` 或任何命令；
 - 它只是提示，环境变化后模型仍应用 `remote_exec` 验证；
@@ -214,7 +214,7 @@ environment:
 仓库结构满足 [dsh.so](https://www.dsh.so/zh/submit/) 和 [DSH-Store](https://github.com/AI-Scarlett/DSH-Store) 的静态上架要求：
 
 - 标准 DSH Bundle，`package.json` 声明 `dsh.bundle.patch`；
-- 唯一入口 id `dsh-remote`，不覆盖任何 `@deepseek-ai/*` 官方组件；
+- 唯一入口 id `dsh-remote-shell`，不覆盖任何 `@deepseek-ai/*` 官方组件；
 - MIT 许可证、README、图标、en/zh locale；
 - 没有 `preinstall` / `install` / `postinstall` / `prepare` 生命周期脚本；
 - 无运行依赖、无原生构建；
