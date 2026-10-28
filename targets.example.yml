@@ -1,0 +1,39 @@
+# Copy this entry into your DSH profile's `cordis.patch.yml`.
+# `config` replaces the whole dsh-remote row config, so keep every target you
+# still want. The WSL target is optional; every remote tool also accepts
+# ad-hoc `ssh:<alias>` / `wsl:<distro>` targets.
+- id: dsh-remote
+  name: '@char0nchengg/dsh-remote'
+  config:
+    # Preloaded into the system prompt for every Agent in this profile.
+    prompt: |
+      Never run heavy compute on a login node; submit batch work with sbatch.
+      Prefer remote_read tail/range for logs instead of catting whole files.
+      Verify module/conda notes below before relying on them.
+
+    targets:
+      - id: wsl-ubuntu
+        label: WSL Ubuntu
+        transport: wsl
+        distro: Ubuntu
+        defaultCwd: "~"
+        environment:
+          - "Local WSL distro; no sshd required."
+          - "Use the default WSL user unless a project explicitly needs sudo."
+
+      - id: gpu
+        label: GPU cluster login
+        transport: ssh
+        # Reuse an existing ~/.ssh/config alias. Or set host/user/identityFile.
+        host: gpu
+        defaultCwd: /data/project
+        environment: |
+          - Slurm login node; partition `fat`, 32 CPUs in the sample sbatch.
+          - `module load intel/2022 netcdf/4.7.4`
+          - `conda activate torch`
+          - Project data is under `/data/project`; scratch is `/scratch/$USER`.
+          - Do not run training on the login node; submit with `sbatch` and read
+            `<jobid>.out` / `<jobid>.err`.
+        # sshOptions:
+        #   - ForwardAgent=no
+        #   - StrictHostKeyChecking=yes

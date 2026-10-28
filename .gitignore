@@ -1,0 +1,9 @@
+node_modules/
+coverage/
+scratch/
+.tmp*
+*.log
+.env
+.env.*
+.DS_Store
+Thumbs.db

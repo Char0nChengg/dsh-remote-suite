@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "远程终端与文件",
+    "description": "通过 Windows 本机 OpenSSH 或 WSL 直连远程目标，并为每个服务器预置 module、Conda、调度器等环境提示；无需在服务器安装 Agent。"
+  }
+}

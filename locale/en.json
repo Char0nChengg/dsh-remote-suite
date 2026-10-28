@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Remote Shell & Files",
+    "description": "Operate WSL distros and SSH hosts from DSH with per-server environment notes for modules, Conda, and schedulers. No agent is installed on the server."
+  }
+}

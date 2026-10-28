@@ -1,0 +1,24 @@
+# dsh-remote bundle patch.
+# The WSL target is a starting point; add SSH targets under `targets` or use the
+# ad-hoc forms `ssh:<alias>` / `ssh://user@host:port` without any config change.
+- insert:
+    - id: dsh-remote
+      name: '@char0nchengg/dsh-remote'
+      config:
+        targets:
+          - id: wsl-ubuntu
+            label: WSL Ubuntu
+            transport: wsl
+            distro: Ubuntu
+            defaultCwd: "~"
+        # SSH example:
+        # - id: gpu
+        #   label: GPU server
+        #   transport: ssh
+        #   host: gpu.example.edu
+        #   user: alice
+        #   port: 22
+        #   identityFile: C:\Users\you\.ssh\id_ed25519
+        #   defaultCwd: /data/project
+        defaultTimeoutMs: 120000
+        maxOutputBytes: 262144

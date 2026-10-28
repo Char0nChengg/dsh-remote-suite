@@ -1,0 +1,61 @@
+{
+  "name": "@char0nchengg/dsh-remote",
+  "version": "0.1.0",
+  "description": "Remote shell, file, and transfer tools for DeepSeek Harness over local OpenSSH or WSL, with per-server environment notes; no agent on the server and no outbound connection from the server.",
+  "license": "MIT",
+  "author": "Char0nChengg",
+  "homepage": "https://github.com/Char0nChengg/dsh-remote#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Char0nChengg/dsh-remote.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Char0nChengg/dsh-remote/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "ssh",
+    "wsl",
+    "remote",
+    "remote-development"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "lib/**/*.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "targets.example.yml",
+    "README.md",
+    "SECURITY.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check index.js && node --check lib/remote.js"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "compatibility": {
+      "dshReleases": {
+        "0.2.1-rc.3": "compatible"
+      }
+    }
+  }
+}
