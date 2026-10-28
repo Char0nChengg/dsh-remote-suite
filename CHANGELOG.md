@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1 — 2026-10-28
+
+- Add `remote_config`: inspect and edit targets, per-server `environment` notes,
+  and the global `prompt` from DSH chat. Edits validate, persist to the active
+  profile patch, and apply through the Loader immediately.
+- Include a short default WSL environment note so the preloaded prompt is
+  active out of the box.
+- Use generic `Username` / `myserver` examples instead of machine-specific sample
+  names.
+
 ## 0.1.0 — 2026-10-28
 
 - Initial public release.

@@ -117,6 +117,59 @@ function indented(text, prefix = '  ') {
   return text.split(/\r?\n/).map((line) => `${prefix}${line}`).join('\n')
 }
 
+const CONFIG_ENTRY_ID = 'dsh-remote'
+const CONFIG_PACKAGE_NAME = '@char0nchengg/dsh-remote'
+const TARGET_FIELDS = [
+  'id', 'label', 'transport', 'host', 'user', 'port', 'identityFile',
+  'proxyJump', 'sshOptions', 'distro', 'defaultCwd', 'shell', 'environment'
+]
+
+function cleanTarget(raw) {
+  if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('target must be an object')
+  const target = {}
+  for (const key of TARGET_FIELDS) {
+    if (raw[key] !== undefined && raw[key] !== null) target[key] = raw[key]
+  }
+  return target
+}
+
+function sanitizeConfig(raw) {
+  const source = raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  const result = {}
+  if (typeof source.prompt === 'string') result.prompt = source.prompt
+  result.targets = Array.isArray(source.targets) ? source.targets.map((target) => cleanTarget(target)) : []
+  for (const key of [
+    'strictHostKeyChecking', 'connectTimeoutSec', 'defaultTimeoutMs', 'transferTimeoutMs',
+    'maxOutputBytes', 'defaultReadBytes', 'largeFileBytes', 'previewBytes',
+    'sshPath', 'scpPath', 'wslPath'
+  ]) {
+    if (source[key] !== undefined && source[key] !== null) result[key] = source[key]
+  }
+  return result
+}
+
+function configEditorHandle(ctx) {
+  const editor = ctx.get('configEditor')
+  if (!editor) throw new Error('this profile does not expose ctx.configEditor, so dsh-remote config cannot be edited from chat')
+  const entry = editor.entries().find((candidate) => (
+    candidate.options?.id === CONFIG_ENTRY_ID && candidate.options?.name === CONFIG_PACKAGE_NAME
+  ))
+  if (!entry) throw new Error(`cannot find the active ${CONFIG_ENTRY_ID} entry (${CONFIG_PACKAGE_NAME}) in the profile`)
+  return { editor, entry }
+}
+
+async function editConfig(ctx, mutate) {
+  const { editor, entry } = configEditorHandle(ctx)
+  await editor.edit(entry, (current) => {
+    const source = current && typeof current === 'object' && !Array.isArray(current) ? current : {}
+    const next = structuredClone(source)
+    const result = mutate(next)
+    normalizeConfig(result)
+    return result
+  })
+  return entry
+}
+
 function cdScript(cwd) {
   if (cwd === '~') return `cd ~ || { printf 'dsh-remote: cannot cd to %s\\n' "$HOME" >&2; exit 97; }`
   const quoted = shellQuote(cwd)
@@ -212,7 +265,7 @@ export function apply(ctx, rawConfig) {
 
   ctx.tools.register(textTool({
     name: 'remote_targets',
-    description: 'List configured remote targets (WSL distros or SSH hosts), Host aliases from ~/.ssh/config, and optionally test connectivity. Use this first when unsure which target id to pass. Every remote tool also accepts an ad-hoc target: `ssh:<host-or-ssh-config-alias>` (e.g. `ssh:gpu` or `ssh://user@host:22`) or `wsl:<distro>` (e.g. `wsl:Ubuntu`).',
+    description: 'List configured remote targets (WSL distros or SSH hosts), Host aliases from ~/.ssh/config, and optionally test connectivity. Use this first when unsure which target id to pass. Every remote tool also accepts an ad-hoc target: `ssh:<host-or-ssh-config-alias>` (e.g. `ssh:myserver` or `ssh://Username@host:22`) or `wsl:<distro>` (e.g. `wsl:Ubuntu`).',
     parameters: {
       type: 'object',
       additionalProperties: false,
@@ -439,6 +492,150 @@ export function apply(ctx, rawConfig) {
       return {
         text: `${direction === 'upload' ? 'uploaded' : 'downloaded'} ${formatBytes(result.bytes)} (${result.bytes ?? '?'} bytes)\nlocal: ${result.localPath}\nremote: ${result.remotePath}\ntarget: ${describeTarget(target)}`
       }
+    }
+  }))
+
+  ctx.tools.register(textTool({
+    name: 'remote_config',
+    description: 'Read or change this plugin\'s configuration through DSH. Changes are validated, persisted to the active profile patch, and applied through the Loader immediately. Use action=show to inspect; set_prompt for the global prompt; upsert_target with a complete target object; set_environment for one target\'s module/Conda/Slurm notes; remove_target to delete one.',
+    parameters: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['show', 'set_prompt', 'upsert_target', 'set_environment', 'remove_target'],
+          description: 'Configuration operation.'
+        },
+        prompt: {
+          type: 'string',
+          description: 'Global preloaded prompt. Empty string removes it. Use action=set_prompt.'
+        },
+        id: {
+          type: 'string',
+          description: 'Target id. Use action=set_environment or remove_target.'
+        },
+        environment: {
+          oneOf: [
+            { type: 'string' },
+            { type: 'array', items: { type: 'string' } }
+          ],
+          description: 'Per-server environment notes. Empty string removes them. Use action=set_environment.'
+        },
+        target: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            id: { type: 'string', description: 'Unique target id.' },
+            label: { type: 'string', description: 'Display label.' },
+            transport: { type: 'string', enum: ['ssh', 'wsl'], description: 'Connection type.' },
+            host: { type: 'string', description: 'SSH host, IP, or ~/.ssh/config alias.' },
+            user: { type: 'string', description: 'SSH user; omit to use ssh config.' },
+            port: { type: 'number', description: 'SSH port; omit to use ssh config.' },
+            identityFile: { type: 'string', description: 'SSH private key path.' },
+            proxyJump: { type: 'string', description: 'ssh -J destination.' },
+            sshOptions: { type: 'array', items: { type: 'string' }, description: 'Additional -o options.' },
+            distro: { type: 'string', description: 'WSL distro name; omit for the default distro.' },
+            defaultCwd: { type: 'string', description: 'Remote default cwd; ~ or an absolute path.' },
+            shell: { type: 'string', description: 'Remote shell, default bash.' },
+            environment: {
+              oneOf: [
+                { type: 'string' },
+                { type: 'array', items: { type: 'string' } }
+              ],
+              description: 'Per-server environment notes.'
+            }
+          },
+          required: ['id', 'transport'],
+          description: 'Complete target object. Upsert replaces the target with this id.'
+        }
+      },
+      required: ['action']
+    },
+    async execute(rawArgs) {
+      const args = argsObject(rawArgs)
+      const action = requiredString(args, 'action')
+
+      if (action === 'show') {
+        let raw = config
+        try {
+          const editor = ctx.get('configEditor')
+          if (editor) {
+            const entry = editor.entries().find((candidate) => (
+              candidate.options?.id === CONFIG_ENTRY_ID && candidate.options?.name === CONFIG_PACKAGE_NAME
+            ))
+            if (entry) raw = entry.options.config ?? config
+          }
+        } catch {
+          // fall back to the config this activation received
+        }
+        return { text: `dsh-remote config:\n${JSON.stringify(sanitizeConfig(raw), null, 2)}` }
+      }
+
+      if (action === 'set_prompt') {
+        const prompt = args.prompt
+        if (typeof prompt !== 'string') throw new Error('prompt must be a string')
+        await editConfig(ctx, (next) => {
+          if (prompt.trim().length === 0) delete next.prompt
+          else next.prompt = prompt
+          return next
+        })
+        return { text: prompt.trim().length === 0 ? 'removed the global prompt' : 'updated the global prompt' }
+      }
+
+      if (action === 'set_environment') {
+        const id = requiredString(args, 'id')
+        const environment = args.environment
+        if (typeof environment !== 'string' && !Array.isArray(environment)) throw new Error('environment must be a string or an array of strings')
+        if (Array.isArray(environment) && environment.some((entry) => typeof entry !== 'string')) throw new Error('environment entries must be strings')
+        let found = false
+        await editConfig(ctx, (next) => {
+          const targets = Array.isArray(next.targets) ? next.targets : []
+          const index = targets.findIndex((candidate) => candidate?.id === id)
+          if (index < 0) throw new Error(`unknown target id: ${id}; use upsert_target to add it first`)
+          const target = { ...targets[index] }
+          const isEmpty = typeof environment === 'string' ? environment.trim().length === 0 : environment.every((entry) => entry.trim().length === 0)
+          if (isEmpty) delete target.environment
+          else target.environment = environment
+          targets[index] = target
+          next.targets = targets
+          found = true
+          return next
+        })
+        if (!found) throw new Error(`target not written: ${id}`)
+        return { text: `updated environment notes for ${id}` }
+      }
+
+      if (action === 'upsert_target') {
+        const target = cleanTarget(args.target)
+        if (typeof target.id !== 'string' || target.id.trim().length === 0) throw new Error('target.id is required')
+        if (target.transport !== 'ssh' && target.transport !== 'wsl') throw new Error('target.transport must be ssh or wsl')
+        await editConfig(ctx, (next) => {
+          const targets = Array.isArray(next.targets) ? [...next.targets] : []
+          const index = targets.findIndex((candidate) => candidate?.id === target.id)
+          if (index < 0) targets.push(target)
+          else targets[index] = target
+          next.targets = targets
+          return next
+        })
+        return { text: `saved target ${target.id}` }
+      }
+
+      if (action === 'remove_target') {
+        const id = requiredString(args, 'id')
+        let found = false
+        await editConfig(ctx, (next) => {
+          const targets = Array.isArray(next.targets) ? next.targets : []
+          const filtered = targets.filter((candidate) => candidate?.id !== id)
+          found = filtered.length !== targets.length
+          next.targets = filtered
+          return next
+        })
+        if (!found) throw new Error(`unknown target id: ${id}`)
+        return { text: `removed target ${id}` }
+      }
+
+      throw new Error(`unknown action: ${action}`)
     }
   }))
 }

@@ -21,18 +21,19 @@
           - "Local WSL distro; no sshd required."
           - "Use the default WSL user unless a project explicitly needs sudo."
 
-      - id: gpu
-        label: GPU cluster login
+      - id: myserver
+        label: Example cluster login
         transport: ssh
         # Reuse an existing ~/.ssh/config alias. Or set host/user/identityFile.
-        host: gpu
-        defaultCwd: /data/project
+        host: myserver
+        user: Username
+        defaultCwd: /home/Username/project
         environment: |
           - Slurm login node; partition `fat`, 32 CPUs in the sample sbatch.
           - `module load intel/2022 netcdf/4.7.4`
-          - `conda activate torch`
-          - Project data is under `/data/project`; scratch is `/scratch/$USER`.
-          - Do not run training on the login node; submit with `sbatch` and read
+          - `conda activate example-env`
+          - Project data is under `/home/Username/project`; scratch is `/scratch/$USER`.
+          - Do not run long jobs on the login node; submit with `sbatch` and read
             `<jobid>.out` / `<jobid>.err`.
         # sshOptions:
         #   - ForwardAgent=no

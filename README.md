@@ -39,31 +39,60 @@ plugin_manager install_bundle({ target: "D:\\dsh-remote" })
 不需要记工具名，直接在聊天里说：
 
 ```text
-列出 gpu 上 ~/project 的文件
-读一下 gpu 上 ~/project/run.log 最后 100 行
-把 gpu 上的 submit.sh 下载到 D:\results
-在 gpu 的 ~/project 下提交 sbatch submit.sh
-在 WSL Ubuntu 里看一下 GPU 和当前目录
+列出 myserver 上 ~/project 的文件
+读一下 myserver 上 ~/project/run.log 最后 100 行
+把 myserver 上的 submit.sh 下载到 D:\results
+在 myserver 的 ~/project 下提交 sbatch submit.sh
+在 WSL Ubuntu 里看一下当前目录
 ```
 
 如果服务器已经在 `~/.ssh/config` 里有别名，可以直接用 `ssh:<别名>`，不需要改插件配置：
 
 ```sshconfig
-Host gpu
-  HostName gpu.example.edu
-  User alice
-  IdentityFile C:\Users\you\.ssh\id_ed25519
+Host myserver
+  HostName server.example.edu
+  User Username
+  IdentityFile C:\Users\Username\.ssh\id_ed25519
   IdentitiesOnly yes
 ```
 
 ```text
 remote_targets({ "check": true })
-remote_exec({ "target": "ssh:gpu", "command": "nvidia-smi" })
+remote_exec({ "target": "ssh:myserver", "command": "hostname; pwd" })
 ```
 
 `remote_targets` 会列出已配置目标和 `~/.ssh/config` 里的 Host 别名（不会主动连接它们）。
 
 ## 配置服务器与环境提示
+
+配置服务器有两种方式：**直接在聊天里用 `remote_config` 改**，或者手动编辑 profile 的 `cordis.patch.yml`。
+
+### 在 DSH 里直接改（推荐）
+
+`remote_config` 会把修改写入当前 profile 的 patch，并通过 Loader 立即生效，通常不需要重启 DSH：
+
+```text
+看看远程插件的配置
+把 wsl-ubuntu 的环境说明改成：默认用户，已装 conda
+给 myserver 加上环境：module load intel/2022；conda activate example-env
+把 myserver 的 conda 环境改成 example-env-v2
+删除 myserver 这个目标
+把全局远程提示改成：登录节点不要跑重计算，优先 sbatch
+```
+
+对应操作：
+
+| 你说的话 | 实际动作 |
+|---|---|
+| 看看配置 | `remote_config({ action: "show" })` |
+| 改某个服务器的环境说明 | `set_environment`，只改 `environment`，不影响其他字段 |
+| 新增/整体替换服务器 | `upsert_target`，传入完整 target |
+| 删除服务器 | `remove_target` |
+| 改全局提示 | `set_prompt` |
+
+`set_environment` 适合只改 module/conda/Slurm 说明；新增服务器时 `upsert_target` 需要完整字段（`id`、`transport`，SSH 还需要 `host` 等）。改完会立即更新系统提示，下一次请求就能看到新的环境说明。
+
+### 手动编辑 YAML
 
 在 profile 的 `cordis.patch.yml` 追加/覆盖 `dsh-remote` 这一行。`config` 会整体替换，所以需要把想保留的 WSL 目标一起写上。完整示例见 [`targets.example.yml`](targets.example.yml)。
 
@@ -83,16 +112,16 @@ remote_exec({ "target": "ssh:gpu", "command": "nvidia-smi" })
         defaultCwd: "~"
         environment: |
           Local WSL distro; no sshd required. Use the distro's default user.
-      - id: gpu
-        label: GPU 登录节点
+      - id: myserver
+        label: 示例登录节点
         transport: ssh
-        host: gpu                    # 复用 ~/.ssh/config 的 Host 别名
-        defaultCwd: /data/project
+        host: myserver                # 复用 ~/.ssh/config 的 Host 别名
+        defaultCwd: /home/Username/project
         environment: |
           - Slurm 登录节点，批处理分区常用 `fat`，示例脚本 32 核。
           - `module load intel/2022 netcdf/4.7.4`
-          - Conda：`conda activate torch`。
-          - 项目数据在 `/data/project`，临时目录在 `/scratch/$USER`。
+          - Conda：`conda activate example-env`。
+          - 项目数据在 `/home/Username/project`，临时目录在 `/scratch/$USER`。
           - 不要在登录节点跑长时间计算；用 `sbatch` 提交后读 `.out` / `.err`。
 ```
 
@@ -101,7 +130,7 @@ remote_exec({ "target": "ssh:gpu", "command": "nvidia-smi" })
 ```yaml
 environment:
   - "module load intel/2022 netcdf/4.7.4"
-  - "conda activate torch"
+  - "conda activate example-env"
 ```
 
 ### 预加载提示词是怎么工作的
@@ -124,11 +153,12 @@ environment:
 | `remote_list` | 列目录，返回类型、大小、mtime、权限、符号链接目标 |
 | `remote_write` | 原子写入 UTF-8 文件（临时文件 + rename），可设 `mode=755` 提交脚本 |
 | `remote_transfer` | Windows 与目标之间上传/下载；SSH 支持目录递归，WSL 仅文件 |
+| `remote_config` | 在 DSH 聊天里查看/修改目标、环境说明和全局 prompt，自动保存到 profile patch 并立即生效 |
 
 所有工具都接受临时目标：
 
-- `ssh:gpu`：使用 `~/.ssh/config` 的 `Host gpu`，或直接主机名；
-- `ssh://alice@gpu.example.edu:2222`；
+- `ssh:myserver`：使用 `~/.ssh/config` 的 `Host myserver`，或直接主机名；
+- `ssh://Username@server.example.edu:2222`；
 - `wsl:Ubuntu`（或 `wsl:` 使用默认发行版）。
 
 大文件/二进制文件不要直接 `cat`：`remote_read` 的 `auto` 模式对超过 2 MiB 的文件只返回元数据和 4 KiB 预览；需要完整数据时用 `remote_transfer` 下载，或 `remote_exec` 调用 `ncdump -h`、`h5dump -H` 等领域工具看参数。
@@ -203,18 +233,19 @@ npm test
 npm run check
 ```
 
-测试只覆盖本地纯函数和配置解析，不连接网络、不写真实 Profile：
+测试只覆盖本地纯函数、配置解析和假的 `configEditor`，不连接网络、不写真实 Profile：
 
 - shell 引号转义；
 - ad-hoc `ssh:` / `wsl:` 目标解析；
 - `environment` / `prompt` 归一化与长度限制；
-- 预加载提示词内容。
+- 预加载提示词内容；
+- `remote_config` 的 show / set_prompt / set_environment / upsert_target / remove_target 流程。
 
 端到端验证记录：
 
 - WSL Ubuntu：连通性检查、命令执行/非零退出/超时、含引号和 `$` 的路径写入与读取、目录列表、大文件预览、二进制识别、文件上传下载；
 - 临时 WSL sshd：公钥认证、首次主机指纹、命令、文件读写、带空格路径、文件与目录 scp 传输，验证后已停止并移除；
-- 未连接任何第三方真实服务器。
+- 开发阶段没有对公网第三方服务器做自动化测试；真实目标由使用者自行配置。
 
 ## License
 

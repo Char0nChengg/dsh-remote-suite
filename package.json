@@ -1,7 +1,7 @@
 {
   "name": "@char0nchengg/dsh-remote",
-  "version": "0.1.0",
-  "description": "Remote shell, file, and transfer tools for DeepSeek Harness over local OpenSSH or WSL, with per-server environment notes; no agent on the server and no outbound connection from the server.",
+  "version": "0.1.1",
+  "description": "Remote shell, file, and transfer tools for DeepSeek Harness over local OpenSSH or WSL, with chat-editable per-server environment notes; no agent on the server and no outbound connection from the server.",
   "license": "MIT",
   "author": "Char0nChengg",
   "homepage": "https://github.com/Char0nChengg/dsh-remote#readme",

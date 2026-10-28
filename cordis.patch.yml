@@ -14,13 +14,13 @@
             environment: |
               Local WSL distro; no sshd required. Use the distro's default user.
         # SSH example:
-        # - id: gpu
-        #   label: GPU server
+        # - id: myserver
+        #   label: Example server
         #   transport: ssh
-        #   host: gpu.example.edu
-        #   user: alice
+        #   host: server.example.edu
+        #   user: Username
         #   port: 22
-        #   identityFile: C:\Users\you\.ssh\id_ed25519
-        #   defaultCwd: /data/project
+        #   identityFile: C:\Users\Username\.ssh\id_ed25519
+        #   defaultCwd: /home/Username/project
         defaultTimeoutMs: 120000
         maxOutputBytes: 262144
