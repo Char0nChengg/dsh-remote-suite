@@ -1,7 +1,7 @@
 {
   "name": "@char0nchengg/dsh-remote-suite",
-  "version": "0.1.4",
-  "description": "Remote shell, file, and transfer tools for DeepSeek Harness over local OpenSSH or WSL, with chat-editable per-server environment notes; no agent on the server and no outbound connection from the server.",
+  "version": "0.2.0",
+  "description": "Remote shell, file, and transfer tools for DeepSeek Harness over local OpenSSH or WSL, with a visual server manager and chat-editable per-server environment notes; no agent on the server and no outbound connection from the server.",
   "license": "MIT",
   "author": "Char0nChengg",
   "homepage": "https://github.com/Char0nChengg/dsh-remote-suite#readme",
@@ -28,11 +28,13 @@
   },
   "exports": {
     ".": "./index.js",
+    "./client": "./client.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
   "files": [
     "index.js",
+    "client.js",
     "lib/**/*.js",
     "cordis.patch.yml",
     "locale/*.json",
@@ -43,7 +45,7 @@
   ],
   "scripts": {
     "test": "node --test",
-    "check": "node --check index.js && node --check lib/remote.js"
+    "check": "node --check index.js && node --check lib/remote.js && node --check client.js"
   },
   "publishConfig": {
     "access": "public"
@@ -51,6 +53,10 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
     },
     "compatibility": {
       "dshReleases": {

@@ -16,6 +16,7 @@ import {
   formatTime,
   listRemote,
   listSshAliases,
+  listSshConfigHosts,
   normalizeConfig,
   probeTarget,
   readRemote,
@@ -170,6 +171,263 @@ async function editConfig(ctx, mutate) {
   return entry
 }
 
+const SETTINGS_API_PREFIX = '/plugins/dsh-remote-suite'
+
+function sendJson(res, status, value) {
+  if (res.writableEnded || res.destroyed) return
+  const body = JSON.stringify(value)
+  res.statusCode = status
+  res.setHeader('content-type', 'application/json; charset=utf-8')
+  res.setHeader('cache-control', 'no-store')
+  res.end(body)
+}
+
+function sameOrigin(request, origin) {
+  const fetchSite = request.headers['sec-fetch-site']
+  if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') return false
+  const requestOrigin = request.headers.origin
+  return !requestOrigin || requestOrigin === origin
+}
+
+function readJsonBody(request, limit = 256 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = []
+    let size = 0
+    request.on('data', (chunk) => {
+      size += chunk.length
+      if (size > limit) {
+        reject(new Error('request body is too large'))
+        request.destroy()
+        return
+      }
+      chunks.push(chunk)
+    })
+    request.on('error', reject)
+    request.on('end', () => {
+      if (size === 0) {
+        resolve({})
+        return
+      }
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')))
+      } catch {
+        reject(new Error('request body must be JSON'))
+      }
+    })
+  })
+}
+
+function currentConfigFor(ctx, fallback) {
+  try {
+    const editor = ctx.get('configEditor')
+    if (!editor) return fallback
+    const entry = editor.entries().find((candidate) => (
+      candidate.options?.id === CONFIG_ENTRY_ID && candidate.options?.name === CONFIG_PACKAGE_NAME
+    ))
+    return entry?.options?.config ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+function targetAuth(target, sshHosts) {
+  if (target.transport === 'wsl') {
+    return {
+      kind: 'wsl',
+      user: 'default WSL user',
+      hostName: null,
+      port: null,
+      identityFile: null,
+      forwardAgent: null,
+      password: false
+    }
+  }
+  const alias = sshHosts.find((host) => host.alias === target.host)
+  const identityFile = target.identityFile ?? alias?.identityFile
+  const kind = identityFile ? 'key' : alias ? 'ssh-config' : 'agent'
+  return {
+    kind,
+    user: target.user ?? alias?.user ?? null,
+    hostName: alias?.hostName ?? target.host,
+    port: target.port ?? alias?.port ?? null,
+    identityFile: identityFile ?? null,
+    forwardAgent: alias?.forwardAgent ?? null,
+    password: false
+  }
+}
+
+async function settingsState(ctx, fallback) {
+  const raw = currentConfigFor(ctx, fallback)
+  const sanitized = sanitizeConfig(raw)
+  const sshHosts = await listSshConfigHosts()
+  return {
+    targets: sanitized.targets.map((target) => ({
+      ...target,
+      auth: targetAuth(target, sshHosts)
+    })),
+    aliases: sshHosts.map((host) => ({
+      ...host,
+      configured: sanitized.targets.some((target) => target.transport === 'ssh' && target.host === host.alias)
+    })),
+    prompt: sanitized.prompt ?? '',
+    sshConfigPath: path.join(homedir(), '.ssh', 'config'),
+    passwordSupported: false
+  }
+}
+
+function aliasTargetId(alias, targets) {
+  const base = alias.toLowerCase().replace(/[^a-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'ssh-target'
+  let id = base
+  let suffix = 2
+  while (targets.some((target) => target.id === id)) {
+    id = `${base}-${suffix}`
+    suffix += 1
+  }
+  return id
+}
+
+async function applySettingsAction(ctx, fallback, body) {
+  const action = body?.action
+  if (action === 'state') return settingsState(ctx, fallback)
+
+  if (action === 'probe') {
+    const raw = currentConfigFor(ctx, fallback)
+    const parsed = normalizeConfig(raw)
+    const target = resolveTarget(parsed, String(body.targetId ?? body.id ?? ''))
+    return { probe: await probeTarget(target, parsed) }
+  }
+
+  if (action === 'saveTarget') {
+    const target = cleanTarget(body.target)
+    if (typeof target.id !== 'string' || target.id.trim().length === 0) throw new Error('target.id is required')
+    if (target.transport !== 'ssh' && target.transport !== 'wsl') throw new Error('target.transport must be ssh or wsl')
+    await editConfig(ctx, (next) => {
+      const targets = Array.isArray(next.targets) ? [...next.targets] : []
+      const index = targets.findIndex((candidate) => candidate?.id === target.id)
+      if (index < 0) targets.push(target)
+      else targets[index] = target
+      next.targets = targets
+      return next
+    })
+    return { saved: target.id }
+  }
+
+  if (action === 'removeTarget') {
+    const id = String(body.id ?? '')
+    if (!id) throw new Error('id is required')
+    let found = false
+    await editConfig(ctx, (next) => {
+      const targets = Array.isArray(next.targets) ? next.targets : []
+      const filtered = targets.filter((target) => target?.id !== id)
+      found = filtered.length !== targets.length
+      next.targets = filtered
+      return next
+    })
+    if (!found) throw new Error(`unknown target id: ${id}`)
+    return { removed: id }
+  }
+
+  if (action === 'setEnvironment') {
+    const id = String(body.id ?? '')
+    const environment = body.environment
+    if (!id) throw new Error('id is required')
+    if (typeof environment !== 'string' && !Array.isArray(environment)) throw new Error('environment must be a string or string array')
+    let found = false
+    await editConfig(ctx, (next) => {
+      const targets = Array.isArray(next.targets) ? next.targets : []
+      const index = targets.findIndex((target) => target?.id === id)
+      if (index < 0) throw new Error(`unknown target id: ${id}`)
+      const target = { ...targets[index] }
+      const empty = typeof environment === 'string'
+        ? environment.trim().length === 0
+        : environment.every((entry) => entry.trim().length === 0)
+      if (empty) delete target.environment
+      else target.environment = environment
+      targets[index] = target
+      next.targets = targets
+      found = true
+      return next
+    })
+    if (!found) throw new Error(`target not found: ${id}`)
+    return { saved: id }
+  }
+
+  if (action === 'setPrompt') {
+    const prompt = body.prompt
+    if (typeof prompt !== 'string') throw new Error('prompt must be a string')
+    await editConfig(ctx, (next) => {
+      if (prompt.trim().length === 0) delete next.prompt
+      else next.prompt = prompt
+      return next
+    })
+    return { saved: 'prompt' }
+  }
+
+  if (action === 'importAlias') {
+    const alias = String(body.alias ?? '')
+    const hosts = await listSshConfigHosts()
+    const host = hosts.find((candidate) => candidate.alias === alias)
+    if (!host) throw new Error(`unknown SSH config alias: ${alias}`)
+    const raw = currentConfigFor(ctx, fallback)
+    const existing = sanitizeConfig(raw).targets
+    if (existing.some((target) => target.transport === 'ssh' && target.host === alias)) {
+      throw new Error(`alias is already configured: ${alias}`)
+    }
+    const target = {
+      id: aliasTargetId(alias, existing),
+      label: alias,
+      transport: 'ssh',
+      host: alias,
+      defaultCwd: '~'
+    }
+    await editConfig(ctx, (next) => {
+      const targets = Array.isArray(next.targets) ? [...next.targets] : []
+      targets.push(target)
+      next.targets = targets
+      return next
+    })
+    return { saved: target.id }
+  }
+
+  throw new Error(`unknown action: ${String(action ?? '')}`)
+}
+
+function registerSettingsApi(ctx, fallbackConfig) {
+  const webServer = ctx.get('webServer')
+  if (!webServer) return
+  const origin = webServer.getOrigin()
+  ctx.effect(() => webServer.register({
+    kind: 'prefix',
+    path: SETTINGS_API_PREFIX,
+    handler: async (request, response) => {
+      try {
+        if (!sameOrigin(request, origin)) {
+          sendJson(response, 403, { ok: false, error: 'cross-origin request rejected' })
+          return
+        }
+        const url = new URL(request.url ?? '/', origin)
+        if (url.pathname === `${SETTINGS_API_PREFIX}/state` && request.method === 'GET') {
+          sendJson(response, 200, { ok: true, state: await settingsState(ctx, fallbackConfig) })
+          return
+        }
+        if (url.pathname === `${SETTINGS_API_PREFIX}/action` && request.method === 'POST') {
+          if (request.headers['x-dsh-remote-ui'] !== '1') {
+            sendJson(response, 403, { ok: false, error: 'missing DSH remote UI header' })
+            return
+          }
+          const body = await readJsonBody(request)
+          const result = await applySettingsAction(ctx, fallbackConfig, body)
+          sendJson(response, 200, { ok: true, result })
+          return
+        }
+        sendJson(response, 404, { ok: false, error: 'not found' })
+      } catch (error) {
+        sendJson(response, 400, { ok: false, error: error instanceof Error ? error.message : String(error) })
+      }
+    }
+  }), 'dsh-remote-suite: settings API')
+}
+
 function cdScript(cwd) {
   if (cwd === '~') return `cd ~ || { printf 'dsh-remote: cannot cd to %s\\n' "$HOME" >&2; exit 97; }`
   const quoted = shellQuote(cwd)
@@ -262,6 +520,8 @@ export function apply(ctx, rawConfig) {
       }
     }
   }
+
+  registerSettingsApi(ctx, config)
 
   ctx.tools.register(textTool({
     name: 'remote_targets',

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0 — 2026-10-29
+
+- Add a visual **Remote servers** settings page: configured servers, SSH config
+  aliases, accounts, authentication method, endpoint, default directory, and
+  environment notes.
+- Add connection testing, add/edit/delete, one-click import of SSH config
+  aliases, and global prompt editing from the UI.
+- Add a host settings API with same-origin checks and a UI request header; it
+  exposes no passwords and writes only through the existing config editor.
+- New/updated Client halves require a DSH restart before the settings page is
+  visible; the host tools and chat config editing remain hot-reloadable.
+
 ## 0.1.4 — 2026-10-28
 
 - Rename the plugin, package, and GitHub repository to `dsh-remote-suite` after

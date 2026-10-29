@@ -63,6 +63,20 @@ remote_exec({ "target": "ssh:myserver", "command": "hostname; pwd" })
 
 `remote_targets` 会列出已配置目标和 `~/.ssh/config` 里的 Host 别名（不会主动连接它们）。
 
+## 可视化服务器管理
+
+安装后重启一次 DSH，在 **设置 → 远程服务器** 打开管理页：
+
+- 列出已配置服务器、`~/.ssh/config` 中的别名、账户、实际主机名/端口、默认目录和环境说明；
+- 显示认证方式（SSH key、SSH config、ssh-agent、WSL）、`ForwardAgent` 等状态；
+- 点「测试连接」立即检查可达性和远端系统；
+- 直接添加、编辑、删除服务器，或把 SSH config 别名一键加入；
+- 编辑每个服务器的环境说明和全局远程提示，保存后立即写入 profile patch 并生效。
+
+**密码不会保存在插件、浏览器或 YAML 中。** 当前认证只走 SSH key / ssh-agent；管理页会显示账户和认证方式，但不提供密码登录。密码登录的服务器请先配置公钥（例如 `ssh-copy-id`），或使用 ssh-agent。
+
+> 第一次安装/更新插件的 Client 半侧后需要**重启 DSH**：DSH 在启动时扫描客户端插件，单纯刷新页面可能看不到新的设置页。Host 侧的 `remote_config` 工具不需要重启。
+
 ## 配置服务器与环境提示
 
 配置服务器有两种方式：**直接在聊天里用 `remote_config` 改**，或者手动编辑 profile 的 `cordis.patch.yml`。
@@ -246,6 +260,8 @@ npm run check
 
 - WSL Ubuntu：连通性检查、命令执行/非零退出/超时、含引号和 `$` 的路径写入与读取、目录列表、大文件预览、二进制识别、文件上传下载；
 - 临时 WSL sshd：公钥认证、首次主机指纹、命令、文件读写、带空格路径、文件与目录 scp 传输，验证后已停止并移除；
+- 设置 API：`GET /state`、`POST /action` 的 probe/save/remove 已实测，缺少 UI 请求头与跨源请求会被拒绝；
+- Client 设置页：用临时 Client 包验证了 `settings.section` 注册；正式页面的 Client 半侧需要重启 DSH 后才会被启动扫描加载，因此最终视觉呈现还需重启后确认；
 - 开发阶段没有对公网第三方服务器做自动化测试；真实目标由使用者自行配置。
 
 ## License

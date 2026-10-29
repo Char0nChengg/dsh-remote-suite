@@ -13,6 +13,10 @@ remote hosts with the permissions of the configured SSH user.
 - Persist configuration edits to the active profile's `cordis.patch.yml` through
   `ctx.configEditor` when `remote_config` is used, and apply them through the
   Loader.
+- Serve a local settings API on the DSH web origin. It exposes configured
+  target metadata, SSH config aliases, usernames, and identity-file paths to the
+  same-origin settings page. It never returns password material, requires a
+  UI-specific request header for writes, and rejects cross-origin requests.
 
 ## What it does not do
 
